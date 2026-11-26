@@ -1,0 +1,43 @@
+version: "1.0"
+mode: safe
+approval_timeout_seconds: 30.0
+require_approval_for_high: true
+require_approval_for_critical: true
+block_critical_in_strict: true
+redact_passwords: true
+block_password_read: true
+
+critical_patterns:
+  - "(?<![A-Za-z])(delete|destroy|format|shutdown|drop|reset|pay|purchase|transfer|checkout|wipe|purge)(?![A-Za-z])"
+
+high_risk_patterns:
+  - "(?<![A-Za-z])(remove|send|confirm|publish|grant|revoke)(?![A-Za-z])"
+
+terminal_processes:
+  - "cmd.exe"
+  - "powershell"
+  - "pwsh"
+  - "WindowsTerminal"
+  - "Terminal"
+  - "iTerm2"
+  - "bash"
+  - "zsh"
+
+dangerous_hotkeys:
+  - "Alt+F4"
+  - "Ctrl+Alt+Del"
+  - "Win+R"
+  - "Ctrl+Shift+Delete"
+
+system_dialog_patterns:
+  - "(?i)user account control"
+  - "(?i)windows security"
+  - "(?i)credential"
+  - "(?i)administrator"
+  - "(?i)registry editor"
+  - "(?i)system settings"
+  - "(?i)run as administrator"
+  - "(?i)authentication required"
+
+blocked_processes: []
+allowed_processes: []

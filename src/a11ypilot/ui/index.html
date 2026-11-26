@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A11yPilot Studio control room for semantic desktop accessibility inspection, safety gates, macro playback, and token telemetry.">
+  <title>A11yPilot Studio</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./wireframe_canvas.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="studio-shell">
+    <header class="studio-topbar" aria-label="Studio controls">
+      <div class="brand-lockup">
+        <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+          <path d="M8 12h8M12 8v8"></path>
+          <circle cx="12" cy="12" r="2.25"></circle>
+        </svg>
+        <h1 class="brand-title">A11yPilot Studio</h1>
+      </div>
+
+      <div class="topbar-meta" aria-label="Runtime status">
+        <span id="backend-badge" class="status-pill" role="status">Backend: connecting</span>
+        <span id="stream-badge" class="status-pill" role="status">Stream: connecting</span>
+        <span id="savings-pill" class="status-pill status-pill--accent">Snapshot pending</span>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="mode-switcher" role="group" aria-label="Execution mode">
+          <button type="button" class="mode-btn" data-mode="safe" aria-pressed="true">Safe</button>
+          <button type="button" class="mode-btn" data-mode="strict" aria-pressed="false">Strict</button>
+          <button type="button" class="mode-btn" data-mode="dry-run" aria-pressed="false">Dry-run</button>
+        </div>
+
+        <button type="button" id="emergency-toggle-btn" class="emergency-btn" aria-pressed="false">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+            <line x1="12" y1="8" x2="12" y2="13"></line>
+            <circle cx="12" cy="16.5" r="0.75"></circle>
+          </svg>
+          <span id="emergency-btn-label">Emergency Stop</span>
+        </button>
+      </div>
+    </header>
+
+    <div id="emergency-banner" class="emergency-banner" role="alert" hidden>
+      <span class="emergency-banner-text">Emergency stop active. All desktop actions are halted until resumed.</span>
+      <button type="button" id="emergency-banner-resume" class="btn-outline">Resume automation</button>
+    </div>
+
+    <div id="error-banner" class="error-banner" role="alert" hidden>
+      <span id="error-banner-text"></span>
+      <button type="button" id="error-banner-dismiss" class="btn-quiet">Dismiss</button>
+    </div>
+
+    <noscript>
+      <div class="noscript-notice" role="region" aria-label="JavaScript required">
+        <h2>JavaScript required for interactive inspection</h2>
+        <p>A11yPilot Studio needs JavaScript enabled to render the interactive accessibility wireframe canvas, stream events from <code>/api/events</code>, and process human-in-the-loop approvals.</p>
+        <p>Direct HTTP endpoints remain available at <code>/api/status</code>, <code>/api/windows</code>, <code>/api/snapshot</code>, and <code>/api/approvals</code>.</p>
+      </div>
+    </noscript>
+
+    <main class="studio-workspace">
+      <aside class="studio-panel panel-left" aria-label="Window switcher and accessibility tree">
+        <div class="panel-head">
+          <h2>Tree Explorer</h2>
+          <button type="button" id="overlay-toggle-btn" class="btn-outline" aria-pressed="false">Overlay: Off</button>
+        </div>
+
+        <div class="target-picker">
+          <label class="field-label" for="window-select">Target window</label>
+          <div class="target-picker-row">
+            <select id="window-select" class="field-select" aria-label="Select target window">
+              <option value="">Loading windows…</option>
+            </select>
+            <button type="button" id="refresh-snapshot-btn" class="btn-outline">Refresh</button>
+          </div>
+        </div>
+
+        <div class="tree-filter-box">
+          <label class="field-label" for="tree-search">Filter elements (Ctrl+K or /)</label>
+          <div class="search-row">
+            <input id="tree-search" class="field-input" type="search" placeholder="Search name, @ref, or automation id…" autocomplete="off" spellcheck="false">
+            <button type="button" id="clear-search-btn" class="btn-quiet" hidden>Clear</button>
+          </div>
+          <div id="role-filter-row" class="role-filter-row" role="group" aria-label="Filter by element role">
+            <button type="button" class="filter-chip is-active" data-role="all" aria-pressed="true">All</button>
+            <button type="button" class="filter-chip" data-role="button" aria-pressed="false">Button</button>
+            <button type="button" class="filter-chip" data-role="input" aria-pressed="false">Input</button>
+            <button type="button" class="filter-chip" data-role="toggle" aria-pressed="false">Toggle</button>
+            <button type="button" class="filter-chip" data-role="password" aria-pressed="false">Password</button>
+            <button type="button" class="filter-chip" data-role="risk" aria-pressed="false">High risk</button>
+          </div>
+        </div>
+
+        <div class="tree-meta-bar">
+          <span id="tree-count-label" class="muted-note">0 elements</span>
+          <div class="tree-expand-controls">
+            <button type="button" id="tree-expand-all" class="btn-quiet">Expand all</button>
+            <button type="button" id="tree-collapse-all" class="btn-quiet">Collapse</button>
+          </div>
+        </div>
+
+        <div id="tree-container" class="tree-container" role="tree" aria-label="Accessibility element hierarchy">
+          <div class="state-empty">Connecting to desktop backend…</div>
+        </div>
+      </aside>
+
+      <section class="studio-stage" aria-label="X-Ray wireframe stage and action sandbox">
+        <div class="stage-toolbar">
+          <div class="stage-title-group">
+            <h2>X-Ray Viewport</h2>
+            <span id="stage-window-info" class="mono-value muted-note">No window captured</span>
+          </div>
+
+          <div class="stage-legend" aria-label="Role color key">
+            <span class="legend-item legend-item--button">Button</span>
+            <span class="legend-item legend-item--input">Input</span>
+            <span class="legend-item legend-item--toggle">Toggle</span>
+            <span class="legend-item legend-item--password">Password</span>
+            <span class="legend-item legend-item--danger">High risk</span>
+          </div>
+
+          <div class="stage-zoom-controls" role="group" aria-label="Canvas camera controls">
+            <button type="button" id="zoom-out-btn" class="btn-quiet" aria-label="Zoom out">-</button>
+            <button type="button" id="zoom-fit-btn" class="btn-quiet">Fit</button>
+            <button type="button" id="zoom-in-btn" class="btn-quiet" aria-label="Zoom in">+</button>
+          </div>
+        </div>
+
+        <div id="canvas-stage" class="canvas-stage">
+          <canvas id="xray-canvas" tabindex="0" aria-label="Interactive accessibility wireframe canvas"></canvas>
+          <div id="canvas-tooltip" class="canvas-tooltip" role="tooltip" hidden></div>
+        </div>
+
+        <section class="action-sandbox" aria-label="Action sandbox">
+          <div class="sandbox-selection">
+            <div class="sandbox-selected-head">
+              <span id="selected-ref-badge" class="ref-code">No selection</span>
+              <span id="selected-role-badge" class="role-tag">none</span>
+              <span id="selected-risk-badge" class="risk-tag" hidden>low</span>
+            </div>
+            <div id="selected-meta-grid" class="sandbox-meta-grid">
+              <span class="meta-cell">
+                <span class="meta-key">Name</span>
+                <span id="selected-name-val" class="meta-val">Select an element from the tree or canvas</span>
+              </span>
+              <span class="meta-cell">
+                <span class="meta-key">Automation id</span>
+                <span id="selected-auto-val" class="meta-val mono-value">none</span>
+              </span>
+              <span class="meta-cell">
+                <span class="meta-key">Bounds</span>
+                <span id="selected-bounds-val" class="meta-val mono-value">none</span>
+              </span>
+              <span class="meta-cell">
+                <span class="meta-key">Actions</span>
+                <span id="selected-actions-val" class="meta-val mono-value">none</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="sandbox-controls">
+            <div class="sandbox-btn-row">
+              <button type="button" id="act-click-btn" class="btn-primary" disabled>Click</button>
+              <button type="button" id="act-focus-btn" class="btn-outline" disabled>Focus</button>
+              <button type="button" id="act-toggle-btn" class="btn-outline" disabled>Toggle</button>
+            </div>
+
+            <div class="sandbox-input-row">
+              <input id="act-type-input" class="field-input" type="text" placeholder="Text to type…" aria-label="Text to type" disabled>
+              <label class="checkbox-inline">
+                <input id="act-clear-checkbox" type="checkbox" checked>
+                <span>Clear</span>
+              </label>
+              <button type="button" id="act-type-btn" class="btn-outline" disabled>Type</button>
+            </div>
+
+            <div class="sandbox-input-row">
+              <input id="act-select-input" class="field-input" type="text" placeholder="Option value…" aria-label="Option to select" disabled>
+              <button type="button" id="act-select-btn" class="btn-outline" disabled>Select</button>
+            </div>
+
+            <div id="act-result-status" class="action-feedback" role="status" aria-live="polite"></div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="studio-panel panel-right" aria-label="Telemetry, macros, and approvals">
+        <div class="panel-head">
+          <h2>Control Room</h2>
+          <span id="approvals-count-pill" class="status-pill" hidden>0 pending</span>
+        </div>
+
+        <div class="tab-strip" role="tablist" aria-label="Inspector panels">
+          <button type="button" id="tab-feed" class="tab-btn is-selected" role="tab" aria-selected="true" aria-controls="panel-feed">Live Feed &amp; HITL</button>
+          <button type="button" id="tab-macros" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-macros" tabindex="-1">Macro Studio</button>
+          <button type="button" id="tab-economy" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-economy" tabindex="-1">Token Economy &amp; MCP</button>
+        </div>
+
+        <section id="panel-feed" class="tab-panel" role="tabpanel" aria-labelledby="tab-feed">
+          <div class="subpanel-section">
+            <div class="subpanel-head">
+              <h3>Pending Approvals</h3>
+              <button type="button" id="refresh-approvals-btn" class="btn-quiet">Sync</button>
+            </div>
+            <div id="approvals-list" class="approvals-list">
+              <div class="state-empty">No pending human approvals.</div>
+            </div>
+          </div>
+
+          <div class="subpanel-section subpanel-grow">
+            <div class="subpanel-head">
+              <h3>Live Event Stream</h3>
+              <button type="button" id="clear-feed-btn" class="btn-quiet">Clear</button>
+            </div>
+            <div id="event-feed" class="event-feed" role="log" aria-live="polite">
+              <div class="state-empty">Listening for backend events…</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="panel-macros" class="tab-panel" role="tabpanel" aria-labelledby="tab-macros" hidden>
+          <div class="subpanel-section">
+            <div class="subpanel-head">
+              <h3>Macro Recorder &amp; YAML</h3>
+              <span id="recording-badge" class="status-pill" role="status">Idle</span>
+            </div>
+
+            <div class="macro-toolbar">
+              <button type="button" id="macro-record-btn" class="btn-outline" aria-pressed="false">Start Recording</button>
+              <button type="button" id="macro-load-sample-btn" class="btn-outline">Load sample_macro.yaml</button>
+              <button type="button" id="macro-download-btn" class="btn-quiet">Download YAML</button>
+            </div>
+
+            <label class="field-label" for="macro-window-query">Window query override (optional)</label>
+            <input id="macro-window-query" class="field-input" type="text" placeholder="CloudOps Console" autocomplete="off" spellcheck="false">
+
+            <label class="field-label" for="macro-yaml-editor">Playbook YAML</label>
+            <textarea id="macro-yaml-editor" class="yaml-editor" rows="12" placeholder="Load sample_macro.yaml or record desktop interactions…" spellcheck="false"></textarea>
+
+            <div class="macro-run-row">
+              <button type="button" id="macro-replay-btn" class="btn-primary">Replay Macro</button>
+              <span id="macro-run-status" class="muted-note" role="status"></span>
+            </div>
+
+            <div id="macro-results-list" class="macro-results-list" hidden></div>
+          </div>
+        </section>
+
+        <section id="panel-economy" class="tab-panel" role="tabpanel" aria-labelledby="tab-economy" hidden>
+          <div class="subpanel-section">
+            <div class="subpanel-head">
+              <h3>Token Economy</h3>
+              <span id="economy-capture-ms" class="mono-value muted-note">pending</span>
+            </div>
+
+            <div id="economy-meter" class="economy-meter">
+              <div class="meter-row">
+                <div class="meter-labels">
+                  <span>Accessibility tree</span>
+                  <span id="a11y-tokens-val" class="mono-value">0 tokens</span>
+                </div>
+                <div class="meter-track">
+                  <div id="a11y-tokens-bar" class="meter-fill meter-fill--accent"></div>
+                </div>
+              </div>
+
+              <div class="meter-row">
+                <div class="meter-labels">
+                  <span>Vision screenshot baseline</span>
+                  <span id="vision-tokens-val" class="mono-value">0 tokens</span>
+                </div>
+                <div class="meter-track">
+                  <div id="vision-tokens-bar" class="meter-fill meter-fill--baseline"></div>
+                </div>
+              </div>
+
+              <dl class="telemetry-stats">
+                <div class="telemetry-stat">
+                  <dt>Tokens saved</dt>
+                  <dd id="stat-tokens-saved" class="mono-value">0</dd>
+                </div>
+                <div class="telemetry-stat">
+                  <dt>Reduction</dt>
+                  <dd id="stat-savings-pct" class="mono-value">0%</dd>
+                </div>
+                <div class="telemetry-stat">
+                  <dt>Raw / pruned</dt>
+                  <dd id="stat-pruned-nodes" class="mono-value">0 / 0</dd>
+                </div>
+                <div class="telemetry-stat">
+                  <dt>Interactive refs</dt>
+                  <dd id="stat-interactive-count" class="mono-value">0</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <div class="subpanel-section">
+            <div class="subpanel-head">
+              <h3>Compact Snapshot</h3>
+              <button type="button" id="copy-compact-btn" class="btn-outline">Copy text</button>
+            </div>
+            <pre id="compact-snapshot-pre" class="code-box">Capture a window snapshot to inspect compact text.</pre>
+          </div>
+
+          <div class="subpanel-section">
+            <div class="subpanel-head">
+              <h3>Claude Desktop &amp; Cursor MCP</h3>
+              <div class="inline-actions">
+                <button type="button" id="refresh-mcp-btn" class="btn-quiet">Reload</button>
+                <button type="button" id="copy-mcp-btn" class="btn-outline">Copy JSON</button>
+              </div>
+            </div>
+            <pre id="mcp-config-pre" class="code-box">Loading MCP client configuration…</pre>
+          </div>
+        </section>
+      </aside>
+    </main>
+  </div>
+</body>
+</html>

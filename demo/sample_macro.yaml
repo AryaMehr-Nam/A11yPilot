@@ -1,0 +1,24 @@
+name: "CloudOps Staging Rollout"
+description: "Configure staging rollout and test critical safety gate"
+version: "1.0"
+window_query: "CloudOps Console"
+steps:
+  - action: type
+    target_name: "Service Name"
+    target_role: "text_input"
+    text: "payments-gateway"
+    clear_first: true
+  - action: type
+    target_name: "Version Tag"
+    target_role: "text_input"
+    text: "v2.5.0-rc1"
+    clear_first: true
+  - action: toggle
+    target_name: "Enable Canary Rollout"
+    target_role: "checkbox"
+  - action: click
+    target_name: "Deploy to Staging"
+    target_role: "button"
+  - action: click
+    target_name: "Delete Production Cluster"
+    target_role: "button"
