@@ -6,6 +6,8 @@
 
 > [بازگشت به نسخه دوزبانه (English & فارسی)](README.md)
 
+![نمایش زنده A11yPilot — استودیوی X-Ray، اجرای ماکرو، تایید انسانی HITL و آمار صرفه‌جویی توکن](docs/assets/a11ypilot-demo.gif)
+
 ---
 
 ## A11yPilot چیست و چه مشکلی را حل می‌کند؟
@@ -35,8 +37,8 @@
 ## نصب و راه‌اندازی (پایتون 3.11+)
 
 ```powershell
-git clone https://github.com/AryaMehr-Nam/a11ypilot.git
-cd a11ypilot
+git clone https://github.com/AryaMehr-Nam/A11yPilot.git
+cd A11yPilot
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"

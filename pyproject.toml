@@ -62,9 +62,9 @@ dev = [
 a11ypilot = "a11ypilot.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/AryaMehr-Nam/a11ypilot"
-Repository = "https://github.com/AryaMehr-Nam/a11ypilot"
-Issues = "https://github.com/AryaMehr-Nam/a11ypilot/issues"
+Homepage = "https://github.com/AryaMehr-Nam/A11yPilot"
+Repository = "https://github.com/AryaMehr-Nam/A11yPilot"
+Issues = "https://github.com/AryaMehr-Nam/A11yPilot/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

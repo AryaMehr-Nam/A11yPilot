@@ -2,11 +2,13 @@
 
 **Screenshot-free, safety-first desktop automation engine, pure-STDIO MCP server, and 60fps X-Ray control studio powered by native OS Accessibility Trees.**
 
-[![CI](https://github.com/AryaMehr-Nam/a11ypilot/actions/workflows/ci.yml/badge.svg)](https://github.com/AryaMehr-Nam/a11ypilot/actions/workflows/ci.yml)
+[![CI](https://github.com/AryaMehr-Nam/A11yPilot/actions/workflows/ci.yml/badge.svg)](https://github.com/AryaMehr-Nam/A11yPilot/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 > **Language / زبان:** [English Guide](#english-guide) | [راهنمای کامل فارسی (Persian)](#persian-guide) ([Standalone RTL Persian file](README.fa.md))
+
+![A11yPilot Live Demo — Windows UIA X-Ray Wireframes, Semantic Macro Replay, HITL Gate, Emergency Stop & Token Economy](docs/assets/a11ypilot-demo.gif)
 
 ---
 
@@ -85,8 +87,8 @@ Token telemetry is calculated in `prune_and_index_tree()` (`src/a11ypilot/backen
 Requires **Python 3.11+**.
 
 ```bash
-git clone https://github.com/AryaMehr-Nam/a11ypilot.git
-cd a11ypilot
+git clone https://github.com/AryaMehr-Nam/A11yPilot.git
+cd A11yPilot
 python -m venv .venv
 ```
 
@@ -231,8 +233,8 @@ pytest -v
 پیش‌نیاز: **پایتون 3.11 یا بالاتر**.
 
 ```powershell
-git clone https://github.com/AryaMehr-Nam/a11ypilot.git
-cd a11ypilot
+git clone https://github.com/AryaMehr-Nam/A11yPilot.git
+cd A11yPilot
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
